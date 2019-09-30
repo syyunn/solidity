@@ -27,7 +27,7 @@ ModelChecker::ModelChecker(
 	map<h256, string> const& _smtlib2Responses,
 	smt::SMTSolverChoice _enabledSolvers
 ):
-	m_bmc(m_context, _errorReporter, _smtlib2Responses, _enabledSolvers),
+	//m_bmc(m_context, _errorReporter, _smtlib2Responses, _enabledSolvers),
 	m_chc(m_context, _errorReporter, _smtlib2Responses, _enabledSolvers),
 	m_context()
 {
@@ -39,10 +39,10 @@ void ModelChecker::analyze(SourceUnit const& _source)
 		return;
 
 	m_chc.analyze(_source);
-	m_bmc.analyze(_source, m_chc.safeAssertions());
+	//m_bmc.analyze(_source, m_chc.safeAssertions());
 }
 
 vector<string> ModelChecker::unhandledQueries()
 {
-	return m_bmc.unhandledQueries() + m_chc.unhandledQueries();
+	return /*m_bmc.unhandledQueries() + */m_chc.unhandledQueries();
 }
