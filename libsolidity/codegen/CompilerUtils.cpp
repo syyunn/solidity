@@ -165,7 +165,6 @@ void CompilerUtils::accessCalldataTail(Type const& _type)
 				if sgt(base_ref, sub(calldatasize(), mul(length, <calldataStride>))) { revert(0, 0) }
 			})")
 			("calldataStride", toCompactHexWithPrefix(calldataStride))
-			// TODO add test
 			("revertString", m_context.revertReasonIfDebug("Invalid calldata tail length"))
 			.render(),
 			{"base_ref", "length"}
@@ -347,7 +346,6 @@ void CompilerUtils::abiDecode(TypePointers const& _typeParameters, bool _fromMem
 					templ("item_size", to_string(arrayType.calldataStride()));
 					// TODO add test
 					templ("revertStringPointer", m_context.revertReasonIfDebug("ABI memory decoding error: invalid data pointer"));
-					// TODO add test
 					templ("revertStringStart", m_context.revertReasonIfDebug("ABI memory decoding error: invalid data start"));
 					templ("revertStringLength", m_context.revertReasonIfDebug("ABI memory decoding error: invalid data length"));
 					m_context.appendInlineAssembly(templ.render(), {"input_end", "base_offset", "offset", "ptr", "dst"});
