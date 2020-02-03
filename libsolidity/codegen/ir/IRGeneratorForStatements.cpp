@@ -1164,14 +1164,17 @@ void IRGeneratorForStatements::appendExternalFunctionCall(
 		let <end> := <encodeArgs>(add(<pos>, 4) <argumentString>)
 
 		let <result> := <call>(<gas>, <address>, <value>, <pos>, sub(<end>, <pos>), <pos>, <retSize>)
-		if iszero(<result>) { <forwardingRevert> }
+		<?isTryCall>
+		<!isTryCall>
+			if (<result>) { <forwardingRevert> }
 
-		<?dynamicReturnSize>
-			returndatacopy(<pos>, 0, returndatasize())
-		</dynamicReturnSize>
-		<allocate>
-		mstore(<freeMem>, add(<pos>, and(add(<retSize>, 0x1f), not(0x1f))))
-		<?returns> let <retvars> := </returns> <abiDecode>(<pos>, <retSize>)
+			<?dynamicReturnSize>
+				returndatacopy(<pos>, 0, returndatasize())
+			</dynamicReturnSize>
+			<allocate>
+			mstore(<freeMem>, add(<pos>, and(add(<retSize>, 0x1f), not(0x1f))))
+			<?returns> let <retvars> := </returns> <abiDecode>(<pos>, <retSize>)
+		</isTryCall>
 	)");
 	templ("pos", m_context.newYulVariable());
 	templ("end", m_context.newYulVariable());
@@ -1179,6 +1182,8 @@ void IRGeneratorForStatements::appendExternalFunctionCall(
 	templ("freeMem", fetchFreeMem());
 	templ("shl28", m_utils.shiftLeftFunction(8 * (32 - 4)));
 	templ("funId", m_context.variablePart(_functionCall.expression(), "functionIdentifier"));
+
+	templ("isTryCall", _functionCall.annotation().tryCall);
 
 	// If the function takes arbitrary parameters or is a bare call, copy dynamic length data in place.
 	// Move arguments to memory, will not update the free memory pointer (but will update the memory
@@ -1252,6 +1257,10 @@ void IRGeneratorForStatements::appendExternalFunctionCall(
 	templ("abiDecode", abi.tupleDecoder(returnTypes, true));
 	templ("returns", !returnTypes.empty());
 	templ("retVars", m_context.variable(_functionCall));
+	//templ("trySuccessCondition",
+
+
+	m_code << templ.render();
 }
 
 string IRGeneratorForStatements::fetchFreeMem() const
@@ -1433,4 +1442,39 @@ Type const& IRGeneratorForStatements::type(Expression const& _expression)
 {
 	solAssert(_expression.annotation().type, "Type of expression not set.");
 	return *_expression.annotation().type;
+}
+
+/// TODO
+/// - sematest fuer external call auf "this.XXX" (fake ext call)
+/// - sowohl die success condition als auch die eig. return values extrahieren, aus
+/// appendExternalFunctionCall()
+/// -
+bool IRGeneratorForStatements::visit(TryStatement const& _tryStatement)
+{
+	_tryStatement.externalCall().accept(*this);
+
+	Whiskers templ(R"({
+		if (<successCondition>) {
+		} else {
+		}
+	})");
+
+	templ("successCondition", m_context.trySuccessConditionVariable(_tryStatement.externalCall()));
+
+	// returndatacopy() zum selbst decoden fuer den catch part
+	// NB: wohl success / catch erzeugen local vars.
+	//     string IRGenerator::generateFunction(FunctionDefinition const& _function)
+
+	return true;
+}
+
+void IRGeneratorForStatements::handleCache(vector<ASTPointer<TryCatchClause>> const& _catchClauses)
+{
+	(void) _catchClauses;
+}
+
+bool IRGeneratorForStatements::visit(TryCatchClause const& _clause)
+{
+	(void) _clause;
+	return true; // TODO
 }

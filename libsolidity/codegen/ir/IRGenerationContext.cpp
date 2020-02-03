@@ -108,7 +108,14 @@ string IRGenerationContext::variable(Expression const& _expression)
 		return suffixedVariableNameList(move(var) + "_", 1, 1 + size);
 }
 
-string IRGenerationContext::variablePart(Expression const& _expression, string const& _part)
+string IRGenerationContext::trySuccessConditionVariable(Expression const& _expression) const
+{
+	// TODO: solAssert auf annotation().isTryCall == true
+
+	return variablePart(_expression, "trySuccessCondition");
+}
+
+string IRGenerationContext::variablePart(Expression const& _expression, string const& _part) const
 {
 	size_t numVars = _expression.annotation().type->sizeOnStack();
 	solAssert(numVars > 1, "");
@@ -163,3 +170,4 @@ YulUtilFunctions IRGenerationContext::utils()
 {
 	return YulUtilFunctions(m_evmVersion, m_functions);
 }
+
