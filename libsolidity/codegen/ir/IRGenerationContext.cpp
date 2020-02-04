@@ -26,6 +26,8 @@
 #include <libsolutil/Whiskers.h>
 #include <libsolutil/StringUtils.h>
 
+#include <boost/range/adaptor/transformed.hpp>
+
 using namespace std;
 using namespace solidity;
 using namespace solidity::util;
@@ -48,6 +50,50 @@ string IRGenerationContext::localVariableName(VariableDeclaration const& _varDec
 		"Unknown variable: " + _varDecl.name()
 	);
 	return m_localVariables[&_varDecl];
+}
+
+vector<string> IRGenerationContext::addCalldataVariable(VariableDeclaration const& _varDecl)
+{
+	auto const* referenceType = dynamic_cast<ReferenceType const*>(_varDecl.annotation().type);
+	solAssert(referenceType && referenceType->location() == DataLocation::CallData, "");
+	string baseName = "vloc_" + _varDecl.name() + "_" + to_string(_varDecl.id());
+	if (referenceType->isDynamicallySized())
+		return m_calldataVariables[&_varDecl] = {baseName + "_offset", baseName + "_length"};
+	else
+		return m_calldataVariables[&_varDecl] = {baseName + "_offset"};
+}
+
+string IRGenerationContext::calldataVariableOffset(VariableDeclaration const& _varDecl)
+{
+	solAssert(
+		m_calldataVariables.count(&_varDecl),
+		"Unknown calldata variable: " + _varDecl.name()
+	);
+	auto const& variables = m_calldataVariables[&_varDecl];
+	solAssert(!variables.empty(), "");
+	return variables.front();
+}
+
+
+string IRGenerationContext::calldataVariableLength(VariableDeclaration const& _varDecl)
+{
+	auto const* arrayType = dynamic_cast<ArrayType const*>(_varDecl.annotation().type);
+	solAssert(
+		arrayType && arrayType->location() == DataLocation::CallData,
+		""
+	);
+	solAssert(
+		m_calldataVariables.count(&_varDecl),
+		"Unknown calldata variable: " + _varDecl.name()
+	);
+	if (arrayType->isDynamicallySized())
+	{
+		auto const& variables = m_calldataVariables[&_varDecl];
+		solAssert(variables.size() == 2, "");
+		return variables.back();
+	}
+	else
+		return toCompactHexWithPrefix(arrayType->length());
 }
 
 void IRGenerationContext::addStateVariable(
@@ -98,21 +144,30 @@ string IRGenerationContext::newYulVariable()
 	return "_" + to_string(++m_varCounter);
 }
 
+vector<string> IRGenerationContext::newYulVariablesForType(Type const& _type)
+{
+	string prefix = newYulVariable() + "_";
+	auto slotNames = _type.stackSlotNames();
+	vector<string> result(slotNames.size(), prefix);
+	for (size_t i = 0; i < slotNames.size(); ++i)
+		result[i] += slotNames[i];
+	return result;
+}
+
 string IRGenerationContext::variable(Expression const& _expression)
 {
-	unsigned size = _expression.annotation().type->sizeOnStack();
-	string var = "expr_" + to_string(_expression.id());
-	if (size == 1)
-		return var;
-	else
-		return suffixedVariableNameList(move(var) + "_", 1, 1 + size);
+	return joinHumanReadable(
+		_expression.annotation().type->stackSlotNames() | boost::adaptors::transformed([&](auto const& _slotName) {
+			return variablePart(_expression, _slotName);
+		})
+	);
 }
 
 string IRGenerationContext::variablePart(Expression const& _expression, string const& _part)
 {
-	size_t numVars = _expression.annotation().type->sizeOnStack();
-	solAssert(numVars > 1, "");
-	return "expr_" + to_string(_expression.id()) + "_" + _part;
+	string prefix = "expr_" + to_string(_expression.id());
+	solAssert(contains(_expression.annotation().type->stackSlotNames(), _part), "Invalid variable part.");
+	return _part.empty() ? prefix : prefix + "_" + _part;
 }
 
 string IRGenerationContext::internalDispatch(size_t _in, size_t _out)

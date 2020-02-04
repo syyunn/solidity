@@ -82,6 +82,19 @@ private:
 	/// Defines only one of many variables corresponding to an expression.
 	std::ostream& defineExpressionPart(Expression const& _expression, std::string const& _part);
 
+	template<typename Container>
+	void defineExpression(Expression const& _expression, Container const& vars)
+	{
+		auto const& stackSlotNames = _expression.annotation().type->stackSlotNames();
+		auto it = stackSlotNames.begin();
+		for (auto const& var: vars)
+		{
+			solAssert(it != stackSlotNames.end(), "");
+			defineExpressionPart(_expression, *it++) << var << "\n";
+		}
+		solAssert(it == stackSlotNames.end(), "");
+	}
+
 	void appendAndOrOperatorCode(BinaryOperation const& _binOp);
 	void appendSimpleUnaryOperation(UnaryOperation const& _operation, Expression const& _expr);
 
