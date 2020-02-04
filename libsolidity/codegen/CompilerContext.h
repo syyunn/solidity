@@ -61,7 +61,7 @@ public:
 		m_evmVersion(_evmVersion),
 		m_revertStrings(_revertStrings),
 		m_runtimeContext(_runtimeContext),
-		m_abiFunctions(m_evmVersion)
+		m_abiFunctions(m_evmVersion, m_revertStrings)
 	{
 		if (m_runtimeContext)
 			m_runtimeSub = size_t(m_asm->newSub(m_runtimeContext->m_asm).data());
@@ -227,7 +227,7 @@ public:
 		OptimiserSettings const& _optimiserSettings = OptimiserSettings::none()
 	);
 
-	/// If m_revertStrings is Debug, @returns inline assembly code that
+	/// If m_revertStrings is debug, @returns inline assembly code that
 	/// stores @param _message in memory position 0 and reverts.
 	/// Otherwise returns "revert(0, 0)".
 	std::string revertReasonIfDebug(std::string const& _message = "");

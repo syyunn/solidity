@@ -1493,3 +1493,8 @@ size_t ABIFunctions::numVariablesForType(Type const& _type, EncodingOptions cons
 	else
 		return _type.sizeOnStack();
 }
+
+std::string ABIFunctions::revertReasonIfDebug(std::string const& _message)
+{
+	return YulUtilFunctions::revertReasonIfDebug(m_revertStrings, _message);
+}

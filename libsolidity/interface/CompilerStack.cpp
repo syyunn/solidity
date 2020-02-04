@@ -1112,7 +1112,7 @@ void CompilerStack::generateIR(ContractDefinition const& _contract)
 	for (auto const* dependency: _contract.annotation().contractDependencies)
 		generateIR(*dependency);
 
-	IRGenerator generator(m_evmVersion, m_optimiserSettings);
+	IRGenerator generator(m_evmVersion, m_revertStrings, m_optimiserSettings);
 	tie(compiledContract.yulIR, compiledContract.yulIROptimized) = generator.run(_contract);
 }
 
