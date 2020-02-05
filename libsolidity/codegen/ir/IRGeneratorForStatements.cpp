@@ -1182,8 +1182,13 @@ void IRGeneratorForStatements::appendExternalFunctionCall(
 	templ("freeMem", fetchFreeMem());
 	templ("shl28", m_utils.shiftLeftFunction(8 * (32 - 4)));
 	templ("funId", m_context.variablePart(_functionCall.expression(), "functionIdentifier"));
+	templ("address", m_context.variablePart(_functionCall.expression(), "address"));
 
 	templ("isTryCall", _functionCall.annotation().tryCall);
+
+	// Pass on the variable that contains the result of a try call to the external function.
+	if (_functionCall.annotation().tryCall)
+		templ("trySuccessCondition", m_context.trySuccessConditionVariable(_functionCall));
 
 	// If the function takes arbitrary parameters or is a bare call, copy dynamic length data in place.
 	// Move arguments to memory, will not update the free memory pointer (but will update the memory
@@ -1195,7 +1200,7 @@ void IRGeneratorForStatements::appendExternalFunctionCall(
 		encodeInPlace = false;
 	bool encodeForLibraryCall = funKind == FunctionType::Kind::DelegateCall;
 	solUnimplementedAssert(!encodeInPlace, "");
-	solUnimplementedAssert(!funType.padArguments(), "");
+	solUnimplementedAssert(funType.padArguments(), "");
 	templ("encodeArgs", abi.tupleEncoder(argumentTypes, funType.parameterTypes(), encodeForLibraryCall));
 	templ("argumentString", argumentString);
 
@@ -1204,12 +1209,11 @@ void IRGeneratorForStatements::appendExternalFunctionCall(
 	templ("retSize", to_string(retSize));
 	solUnimplementedAssert(funKind != FunctionType::Kind::ECRecover, "");
 
-	if (isDelegateCall)
-		solAssert(!funType.valueSet(), "Value set for delegatecall");
-	else if (useStaticCall)
-		solAssert(!funType.valueSet(), "Value set for staticcall");
-	else if (funType.valueSet())
+	if (funType.valueSet())
+	{
+		solAssert(!isDelegateCall && !useStaticCall, "Value set for staticcall or delegatecall");
 		templ("value", m_context.variablePart(_functionCall.expression(), "value"));
+	}
 	else
 		templ("value", "0");
 
@@ -1257,8 +1261,6 @@ void IRGeneratorForStatements::appendExternalFunctionCall(
 	templ("abiDecode", abi.tupleDecoder(returnTypes, true));
 	templ("returns", !returnTypes.empty());
 	templ("retVars", m_context.variable(_functionCall));
-	//templ("trySuccessCondition",
-
 
 	m_code << templ.render();
 }
@@ -1454,15 +1456,21 @@ bool IRGeneratorForStatements::visit(TryStatement const& _tryStatement)
 	_tryStatement.externalCall().accept(*this);
 
 	Whiskers templ(R"({
-		if (<successCondition>) {
+		if (<trySuccessCondition>) {
+			// append success-code
 		} else {
+			// codegen: code for each catch-type
 		}
 	})");
 
-	templ("successCondition", m_context.trySuccessConditionVariable(_tryStatement.externalCall()));
+	templ("trySuccessCondition", m_context.trySuccessConditionVariable(_tryStatement.externalCall()));
+
+	vector<ASTPointer<TryCatchClause>> const& clauses = _tryStatement.clauses();
+	TryCatchClause const& successClause = *clauses[0];
+	(void) successClause;
 
 	// returndatacopy() zum selbst decoden fuer den catch part
-	// NB: wohl success / catch erzeugen local vars.
+	// NB: sowohl success / catch erzeugen local vars.
 	//     string IRGenerator::generateFunction(FunctionDefinition const& _function)
 
 	return true;

@@ -110,7 +110,10 @@ string IRGenerationContext::variable(Expression const& _expression)
 
 string IRGenerationContext::trySuccessConditionVariable(Expression const& _expression) const
 {
-	// TODO: solAssert auf annotation().isTryCall == true
+	solAssert(
+		dynamic_cast<FunctionCallAnnotation const*>(&_expression.annotation()) &&
+		static_cast<FunctionCallAnnotation const*>(&_expression.annotation())->tryCall,
+		"Parameter must be a FunctionCall with tryCall-annotation set.");
 
 	return variablePart(_expression, "trySuccessCondition");
 }
