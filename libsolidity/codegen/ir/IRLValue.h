@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include <libsolidity/codegen/ir/IRVariable.h>
 #include <libsolidity/codegen/YulUtilFunctions.h>
 
 #include <libsolutil/Common.h>
@@ -49,11 +50,9 @@ protected:
 
 public:
 	virtual ~IRLValue() = default;
-	/// @returns an expression to retrieve the value of the lvalue.
-	virtual std::string retrieveValue() const = 0;
 	/// Returns code that stores the value of @a _value (should be an identifier)
 	/// of type @a _type in the lvalue. Might perform type conversion.
-	virtual std::string storeValue(std::string const& _value, Type const& _type) const = 0;
+	virtual std::string storeValue(IRVariable const& _value) const = 0;
 
 	/// Returns code that will reset the stored value to zero
 	virtual std::string setToZero() const = 0;
@@ -69,12 +68,11 @@ public:
 		IRGenerationContext& _context,
 		VariableDeclaration const& _varDecl
 	);
-	std::string retrieveValue() const override { return m_variableName; }
-	std::string storeValue(std::string const& _value, Type const& _type) const override;
+	std::string storeValue(IRVariable const& _value) const override;
 
 	std::string setToZero() const override;
 private:
-	std::string m_variableName;
+	IRVariable m_variable;
 };
 
 class IRStorageItem: public IRLValue
@@ -90,8 +88,7 @@ public:
 		boost::variant<std::string, unsigned> _offset,
 		Type const& _type
 	);
-	std::string retrieveValue() const override;
-	std::string storeValue(std::string const& _value, Type const& _type) const override;
+	std::string storeValue(IRVariable const& _value) const override;
 
 	std::string setToZero() const override;
 private:
@@ -117,8 +114,7 @@ public:
 		bool _byteArrayElement,
 		Type const& _type
 	);
-	std::string retrieveValue() const override;
-	std::string storeValue(std::string const& _value, Type const& _type) const override;
+	std::string storeValue(IRVariable const& _value) const override;
 
 	std::string setToZero() const override;
 private:

@@ -75,9 +75,7 @@ private:
 
 	std::string fetchFreeMem() const;
 
-	/// @returns a Yul expression representing the current value of @a _expression,
-	/// converted to type @a _to if it does not yet have that type.
-	std::string expressionAsType(Expression const& _expression, Type const& _to);
+	IRVariable expression(Expression const& _expression);
 	std::ostream& defineExpression(Expression const& _expression);
 	/// Defines only one of many variables corresponding to an expression.
 	std::ostream& defineExpressionPart(Expression const& _expression, std::string const& _part);

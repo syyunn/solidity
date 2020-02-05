@@ -113,7 +113,7 @@ struct CopyTranslate: public yul::ASTCopier
 
 		return yul::Identifier{
 			_identifier.location,
-			yul::YulString{m_context.localVariableName(*varDecl).name()}
+			yul::YulString{/*m_context.localVariableName(*varDecl).name()*/"TODO"}
 		};
 	}
 
@@ -140,11 +140,7 @@ void IRGeneratorForStatements::initializeStateVar(VariableDeclaration const& _va
 	if (_varDecl.value())
 	{
 		_varDecl.value()->accept(*this);
-		string value = m_context.newYulVariable();
-		Type const& varType = *_varDecl.type();
-
-		m_code << "let " << value << " := " << expressionAsType(*_varDecl.value(), varType) << "\n";
-		m_code << IRStorageItem{m_context, _varDecl}.storeValue(value, varType);
+		m_code << IRStorageItem{m_context, _varDecl}.storeValue(expression(*_varDecl.value()));
 	}
 }
 
@@ -159,6 +155,7 @@ void IRGeneratorForStatements::endVisit(VariableDeclarationStatement const& _var
 		solUnimplementedAssert(_varDeclStatement.declarations().size() == 1, "");
 
 		VariableDeclaration const& varDecl = *_varDeclStatement.declarations().front();
+		m_context.localVariableName().type().stackSlotNames()
 		m_code <<
 			"let " <<
 			m_context.localVariableName(varDecl).name() <<

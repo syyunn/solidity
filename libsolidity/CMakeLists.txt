@@ -81,6 +81,8 @@ set(sources
 	codegen/ir/IRGenerationContext.h
 	codegen/ir/IRLValue.cpp
 	codegen/ir/IRLValue.h
+	codegen/ir/IRVariable.cpp
+	codegen/ir/IRVariable.h
 	formal/BMC.cpp
 	formal/BMC.h
 	formal/CHC.cpp

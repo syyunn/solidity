@@ -20,12 +20,11 @@
 
 #pragma once
 
+#include <libsolidity/codegen/ir/IRVariable.h>
+#include <libsolidity/codegen/MultiUseYulFunctionCollector.h>
 #include <libsolidity/interface/OptimiserSettings.h>
 
-#include <libsolidity/codegen/MultiUseYulFunctionCollector.h>
-
 #include <liblangutil/EVMVersion.h>
-
 #include <libsolutil/Common.h>
 
 #include <string>
@@ -41,17 +40,6 @@ class FunctionDefinition;
 class Expression;
 class YulUtilFunctions;
 class Type;
-
-class IRVariable
-{
-public:
-	IRVariable(std::string baseName, Type const& type): m_baseName(std::move(baseName)), m_type(&type) {}
-	std::string commaSeparatedList() const;
-	std::string name() const;
-private:
-	std::string m_baseName;
-	Type const* m_type = nullptr;
-};
 
 /**
  * Class that contains contextual information during IR generation.

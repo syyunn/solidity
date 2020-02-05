@@ -36,19 +36,22 @@ IRLocalVariable::IRLocalVariable(
 	VariableDeclaration const& _varDecl
 ):
 	IRLValue(_context.utils(), _varDecl.annotation().type),
-	m_variableName(_context.localVariableName(_varDecl).name())
+	m_variable(_context.localVariableName(_varDecl))
 {
 }
 
-string IRLocalVariable::storeValue(string const& _value, Type const& _type) const
+string IRLocalVariable::storeValue(IRVariable const& _variable) const
 {
-	solAssert(_type == *m_type, "Storing different types - not necessarily a problem.");
-	return m_variableName + " := " + _value + "\n";
+	solAssert(m_variable.type() == _variable.type(), "Storing different types - not necessarily a problem.");
+	string result;
+	for(auto const& slot: _variable.type().stackSlotNames())
+		result += (m_variable[slot] + " := " + _variable[slot]);
+	return result;
 }
 
 string IRLocalVariable::setToZero() const
 {
-	return storeValue(m_utils.zeroValueFunction(*m_type) + "()", *m_type);
+	return m_variable.commaSeparatedList() + " := " + m_utils.zeroValueFunction(m_variable.type()) + "()";
 }
 
 IRStorageItem::IRStorageItem(

@@ -33,28 +33,6 @@ using namespace solidity;
 using namespace solidity::util;
 using namespace solidity::frontend;
 
-std::string IRVariable::commaSeparatedList() const
-{
-	solAssert(m_type, "");
-	return joinHumanReadable(
-		m_type->stackSlotNames() | boost::adaptors::transformed([&](std::string const& _slotName) {
-			if (_slotName.empty())
-				return m_baseName;
-			else
-				return m_baseName + '_' + _slotName;
-		})
-	);
-}
-
-std::string IRVariable::name() const
-{
-	solAssert(m_type && m_type->sizeOnStack() == 1, "Single variable name requested for multi-slot variable.");
-	if (m_type->stackSlotNames().front().empty())
-		return m_baseName;
-	else
-		return m_baseName + '_' + m_type->stackSlotNames().front();
-}
-
 IRVariable const& IRGenerationContext::addLocalVariable(VariableDeclaration const& _varDecl)
 {
 	auto const& [it, didInsert] = m_localVariables.emplace(
