@@ -40,6 +40,18 @@ class VariableDeclaration;
 class FunctionDefinition;
 class Expression;
 class YulUtilFunctions;
+class Type;
+
+class IRVariable
+{
+public:
+	IRVariable(std::string baseName, Type const& type): m_baseName(std::move(baseName)), m_type(&type) {}
+	std::string commaSeparatedList() const;
+	std::string name() const;
+private:
+	std::string m_baseName;
+	Type const* m_type = nullptr;
+};
 
 /**
  * Class that contains contextual information during IR generation.
@@ -62,9 +74,9 @@ public:
 	}
 
 
-	std::string addLocalVariable(VariableDeclaration const& _varDecl);
+	IRVariable const& addLocalVariable(VariableDeclaration const& _varDecl);
 	bool isLocalVariable(VariableDeclaration const& _varDecl) const { return m_localVariables.count(&_varDecl); }
-	std::string localVariableName(VariableDeclaration const& _varDecl);
+	IRVariable const& localVariableName(VariableDeclaration const& _varDecl);
 
 	void addStateVariable(VariableDeclaration const& _varDecl, u256 _storageOffset, unsigned _byteOffset);
 	bool isStateVariable(VariableDeclaration const& _varDecl) const { return m_stateVariables.count(&_varDecl); }
@@ -96,7 +108,7 @@ private:
 	langutil::EVMVersion m_evmVersion;
 	OptimiserSettings m_optimiserSettings;
 	std::vector<ContractDefinition const*> m_inheritanceHierarchy;
-	std::map<VariableDeclaration const*, std::string> m_localVariables;
+	std::map<VariableDeclaration const*, IRVariable> m_localVariables;
 	/// Storage offsets of state variables
 	std::map<VariableDeclaration const*, std::pair<u256, unsigned>> m_stateVariables;
 	std::shared_ptr<MultiUseYulFunctionCollector> m_functions;

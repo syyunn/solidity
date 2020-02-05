@@ -36,7 +36,7 @@ IRLocalVariable::IRLocalVariable(
 	VariableDeclaration const& _varDecl
 ):
 	IRLValue(_context.utils(), _varDecl.annotation().type),
-	m_variableName(_context.localVariableName(_varDecl))
+	m_variableName(_context.localVariableName(_varDecl).name())
 {
 }
 

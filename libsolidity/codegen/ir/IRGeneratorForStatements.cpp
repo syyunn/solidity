@@ -113,7 +113,7 @@ struct CopyTranslate: public yul::ASTCopier
 
 		return yul::Identifier{
 			_identifier.location,
-			yul::YulString{m_context.localVariableName(*varDecl)}
+			yul::YulString{m_context.localVariableName(*varDecl).name()}
 		};
 	}
 
@@ -161,7 +161,7 @@ void IRGeneratorForStatements::endVisit(VariableDeclarationStatement const& _var
 		VariableDeclaration const& varDecl = *_varDeclStatement.declarations().front();
 		m_code <<
 			"let " <<
-			m_context.localVariableName(varDecl) <<
+			m_context.localVariableName(varDecl).name() <<
 			" := " <<
 			expressionAsType(*expression, *varDecl.type()) <<
 			"\n";
@@ -169,7 +169,7 @@ void IRGeneratorForStatements::endVisit(VariableDeclarationStatement const& _var
 	else
 		for (auto const& decl: _varDeclStatement.declarations())
 			if (decl)
-				m_code << "let " << m_context.localVariableName(*decl) << "\n";
+				m_code << "let " << m_context.localVariableName(*decl).commaSeparatedList() << "\n";
 }
 
 bool IRGeneratorForStatements::visit(Assignment const& _assignment)
@@ -291,7 +291,7 @@ void IRGeneratorForStatements::endVisit(Return const& _return)
 		// TODO support tuples
 		solUnimplementedAssert(types.size() == 1, "Multi-returns not implemented.");
 		m_code <<
-			m_context.localVariableName(*returnParameters.front()) <<
+			m_context.localVariableName(*returnParameters.front()).name() <<
 			" := " <<
 			expressionAsType(*value, *types.front()) <<
 			"\n";

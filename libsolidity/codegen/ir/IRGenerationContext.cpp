@@ -26,28 +26,56 @@
 #include <libsolutil/Whiskers.h>
 #include <libsolutil/StringUtils.h>
 
+#include <boost/range/adaptor/transformed.hpp>
+
 using namespace std;
 using namespace solidity;
 using namespace solidity::util;
 using namespace solidity::frontend;
 
-string IRGenerationContext::addLocalVariable(VariableDeclaration const& _varDecl)
+std::string IRVariable::commaSeparatedList() const
 {
-	solUnimplementedAssert(
-		_varDecl.annotation().type->sizeOnStack() == 1,
-		"Multi-slot types not yet implemented."
+	solAssert(m_type, "");
+	return joinHumanReadable(
+		m_type->stackSlotNames() | boost::adaptors::transformed([&](std::string const& _slotName) {
+			if (_slotName.empty())
+				return m_baseName;
+			else
+				return m_baseName + '_' + _slotName;
+		})
 	);
-
-	return m_localVariables[&_varDecl] = "vloc_" + _varDecl.name() + "_" + to_string(_varDecl.id());
 }
 
-string IRGenerationContext::localVariableName(VariableDeclaration const& _varDecl)
+std::string IRVariable::name() const
+{
+	solAssert(m_type && m_type->sizeOnStack() == 1, "Single variable name requested for multi-slot variable.");
+	if (m_type->stackSlotNames().front().empty())
+		return m_baseName;
+	else
+		return m_baseName + '_' + m_type->stackSlotNames().front();
+}
+
+IRVariable const& IRGenerationContext::addLocalVariable(VariableDeclaration const& _varDecl)
+{
+	auto const& [it, didInsert] = m_localVariables.emplace(
+		std::piecewise_construct,
+		std::forward_as_tuple(&_varDecl),
+		std::forward_as_tuple(
+			"vloc_" + _varDecl.name() + "_" + to_string(_varDecl.id()),
+			*_varDecl.annotation().type
+		)
+	);
+	solAssert(didInsert, "Attempted to add the same local variable twice.");
+	return it->second;
+}
+
+IRVariable const& IRGenerationContext::localVariableName(VariableDeclaration const& _varDecl)
 {
 	solAssert(
 		m_localVariables.count(&_varDecl),
 		"Unknown variable: " + _varDecl.name()
 	);
-	return m_localVariables[&_varDecl];
+	return m_localVariables.at(&_varDecl);
 }
 
 void IRGenerationContext::addStateVariable(
