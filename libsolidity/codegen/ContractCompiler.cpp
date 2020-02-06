@@ -810,11 +810,11 @@ bool ContractCompiler::visit(InlineAssembly const& _inlineAssembly)
 	};
 
 	yul::Block const* code = &_inlineAssembly.operations();
-	yul::AsmAnalysisInfo* analysisInfo = _inlineAssembly.annotation().analysisInfo.get();
+	yul::AsmAnalysisInfo analysisInfo = *_inlineAssembly.annotation().analysisInfo;
 
 	// Only used in the scope below, but required to live outside to keep the
 	// shared_ptr's alive
-	yul::Object object;
+	shared_ptr<yul::Block> sharedCode;
 
 	// The optimiser cannot handle external references
 	if (
@@ -822,51 +822,36 @@ bool ContractCompiler::visit(InlineAssembly const& _inlineAssembly)
 		_inlineAssembly.annotation().externalReferences.empty()
 	)
 	{
-		// Create a modifiable copy of the code and analysis
-		object.code = make_shared<yul::Block>(yul::ASTCopier().translate(*code));
-		object.analysisInfo = make_shared<yul::AsmAnalysisInfo>();
-
-		{
-			ErrorList errList;
-			ErrorReporter errorReporter{errList};
-
-			yul::AsmAnalyzer analyzer(
-				*object.analysisInfo,
-				errorReporter,
-				_inlineAssembly.dialect()
-			);
-			solAssert(analyzer.analyze(*object.code), "Inline analysis failed.");
-		}
+		ErrorList errList;
+		ErrorReporter errorReporter{errList};
 
 		yul::EVMDialect const* dialect = dynamic_cast<decltype(dialect)>(&_inlineAssembly.dialect());
 		solAssert(dialect, "");
 
-#ifdef SOL_OUTPUT_ASM
-		cout << yul::AsmPrinter(*dialect)(*object.code) << endl;
-#endif
+		// Create a modifiable copy of the code and analysis
+		sharedCode = make_shared<yul::Block>(yul::ASTCopier().translate(*code));
 
-		bool const isCreation = m_context.runtimeContext() != nullptr;
-		yul::GasMeter meter(*dialect, isCreation, m_optimiserSettings.expectedExecutionsPerDeployment);
-		yul::OptimiserSuite::run(
-			*dialect,
-			&meter,
-			object,
-			m_optimiserSettings.optimizeStackAllocation,
-			{}
+		yul::Object object;
+		object.code = sharedCode;
+		object.analysisInfo = make_shared<yul::AsmAnalysisInfo>();
+
+		yul::AsmAnalyzer analyzer(
+			*object.analysisInfo,
+			errorReporter,
+			*dialect
 		);
 
-#ifdef SOL_OUTPUT_ASM
-		cout << "After optimizer:" << endl;
-		cout << yul::AsmPrinter(*dialect)(*object.code) << endl;
-#endif
-		code = object.code.get();
-		analysisInfo = object.analysisInfo.get();
+		solAssert(analyzer.analyze(*object.code), "Inline assembly analysis failed.");
+		object = m_context.optimizeYul(object, *dialect, m_optimiserSettings);
+
+		sharedCode = std::move(object.code);
+		code = sharedCode.get();
+		analysisInfo = std::move(*object.analysisInfo);
 	}
 
-	solAssert(analysisInfo, "");
 	yul::CodeGenerator::assemble(
 		*code,
-		*analysisInfo,
+		analysisInfo,
 		*m_context.assemblyPtr(),
 		m_context.evmVersion(),
 		identifierAccess,
