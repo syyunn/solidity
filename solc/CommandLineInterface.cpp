@@ -22,8 +22,8 @@
  */
 #include <solc/CommandLineInterface.h>
 
-#include "solidity/BuildInfo.h"
-#include "license.h"
+#include <solidity/BuildInfo.h>
+#include <license.h>
 
 #include <libsolidity/interface/Version.h>
 #include <libsolidity/parsing/Parser.h>

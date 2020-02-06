@@ -31,7 +31,7 @@
 #include <list>
 #include <string>
 
-#include "license.h"
+#include <license.h>
 
 using namespace std;
 using namespace solidity;
